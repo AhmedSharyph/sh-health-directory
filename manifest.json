@@ -1,14 +1,14 @@
 {
-  "name": "FunaTrace",
-  "short_name": "FunaTrace",
-  "description": "Find any house address in Sh. Funadhoo with pinpoint accuracy using FunaTrace.",
-  "start_url": "/funatrace/index.html",
+  "name": "sh-health-directory",
+  "short_name": "sh-health-directory",
+  "description": "Shaviyani Health Directory.",
+  "start_url": "/sh-health-directory/index.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#00bcd4",
   "theme_color": "#00bcd4",
   "lang": "en",
-  "scope": "/funatrace/",
+  "scope": "/sh-health-directory/",
   "icons": [
     {
       "src": "ft_logo.png",
