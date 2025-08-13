@@ -1,4 +1,4 @@
-const CACHE_NAME = "funatrace-cache-v1";
+const CACHE_NAME = "sh-health-directory-v1";
 const urlsToCache = [
   "/funatrace/",
   "/funatrace/index.html",
