@@ -15,184 +15,240 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="m-0 p-0 h-full font-sans antialiased">
+<body class="h-screen m-0 p-0 font-sans">
 
-  <!-- App Header -->
-  <div class="flex flex-wrap items-center justify-center p-4 bg-white shadow">
-    <img src="https://ahmedsharyph.github.io/sh-health-directory/ft_logo.png" alt="Logo" class="w-12 h-12 mr-4">
-    <div class="text-center">
-      <div class="text-2xl font-bold text-teal-700">sh-health-directory</div>
-      <div class="text-gray-600 text-sm">Funadhoo Location Finder</div>
+<nav class="fixed top-0 left-0 right-0 bg-white shadow z-50">
+  <div class="max-w-7xl mx-auto flex items-center justify-between px-4 py-3">
+
+    <!-- Logo + Title -->
+    <a href="index.html" class="flex items-center gap-2">
+      <img src="./logo.png" alt="Logo" class="w-8 h-8">
+      <span class="hidden lg:inline font-semibold text-emerald-900">Shaviyani Health Directory</span>
+    </a>
+
+    <!-- Search Form (hidden on small screens) -->
+    <form id="searchForm" class="hidden md:flex flex-grow mx-4" role="search" onsubmit="return false;">
+      <input
+        id="searchInput"
+        type="search"
+        placeholder="🔍 Search by any field..."
+        autocomplete="off"
+        aria-label="Search directory"
+        class="w-full border border-gray-300 rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
+      />
+    </form>
+
+    <!-- Hamburger (mobile) -->
+    <button id="hamburgerBtn" class="text-2xl lg:hidden" aria-label="Toggle navigation" aria-expanded="false">
+      &#9776;
+    </button>
+
+    <!-- Navigation Links -->
+    <div id="navbarNav" class="hidden lg:flex lg:items-center lg:space-x-4">
+      <a href="add-contact.html" class="block px-4 py-2 text-sm font-medium hover:text-emerald-700">Add Contact</a>
     </div>
+
   </div>
+</nav>
 
-  <!-- Dropdown -->
-  <div class="sticky top-0 z-50 bg-white p-2 flex justify-center shadow">
-    <input id="dropdown" list="houses-list" placeholder="Search..." autocomplete="off"
-      class="w-full max-w-md px-4 py-3 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-teal-500"/>
-    <button id="clear-dropdown" title="Clear"
-      class="ml-2 px-3 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700">❌</button>
-    <datalist id="houses-list"></datalist>
-  </div>
+<script>
+  // Hamburger toggle
+  const hamburgerBtn = document.getElementById('hamburgerBtn');
+  const navbarNav = document.getElementById('navbarNav');
 
-  <!-- Loader -->
-  <div id="loader" class="text-center text-gray-500 p-3 text-base">Loading map data...</div>
+  hamburgerBtn.addEventListener('click', () => {
+    const expanded = hamburgerBtn.getAttribute('aria-expanded') === 'true';
+    hamburgerBtn.setAttribute('aria-expanded', !expanded);
+    navbarNav.classList.toggle('hidden');
+  });
+</script>
 
-  <!-- Map -->
-  <div id="map" class="w-full h-[85vh]"></div>
 
-  <!-- Floating Buttons -->
-  <div id="floating-button-container" class="absolute flex flex-col gap-2 items-end pointer-events-auto right-2"
-       style="top:10px; width:220px;">
-    <button id="directions-btn" class="map-button hidden bg-orange-500 text-white font-bold py-2 px-4 rounded shadow text-left">🤾 Get Directions</button>
-    <button id="googlemaps-btn" class="map-button hidden bg-blue-600 text-white font-bold py-2 px-4 rounded shadow text-left">🗺️ Open in Maps</button>
-    <button id="share-btn" class="map-button hidden bg-green-500 text-white font-bold py-2 px-4 rounded shadow text-left">📤 Share Location</button>
-    <button id="reset-btn" class="map-button bg-red-500 text-white font-bold py-2 px-4 rounded shadow text-center hidden">🔄 Reset View</button>
-  </div>
+<script>
+  // Hamburger toggle
+  const hamburgerBtn = document.getElementById('hamburgerBtn');
+  const navbarNav = document.getElementById('navbarNav');
+
+  hamburgerBtn.addEventListener('click', () => {
+    const expanded = hamburgerBtn.getAttribute('aria-expanded') === 'true';
+    hamburgerBtn.setAttribute('aria-expanded', !expanded);
+    navbarNav.classList.toggle('hidden');
+  });
+</script>
+
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto mt-4 px-4" id="directoryContainer">
+    <p class="no-results">Loading data…</p>
+  </main>
 
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbz8_X-uaxok6xQK0mog2hIvYVN_D3ydOPGOHdXC8SZ8tHulyVo2xm76NSTHCWaQ_8KzIg/exec?type=address";
-    const defaultCenter = { lat: 6.1535, lng: 73.28975 };
-    const defaultZoom = 15;
-    const funadhooBounds = { north: 6.1700, south: 6.1370, east: 73.2953, west: 73.2842 };
-    let map, marker, userMarker, houseData = [], currentHouse = null, userLocation = null;
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwndImcPMsQCTx1xLtxolE7Q7nOdN_nVpmOh7fw0U0Sy0-0u30Chp6ovUVhJgk2XdRuNg/exec';
 
-    function initMap() {
-      map = new google.maps.Map(document.getElementById("map"), {
-        center: defaultCenter,
-        zoom: defaultZoom,
-        gestureHandling: 'greedy',
-        mapTypeId: google.maps.MapTypeId.SATELLITE,
-      });
-
-      map.addListener("idle", () => {
-        document.getElementById("reset-btn").classList.toggle("hidden", isMapAtDefaultView());
-      });
-
-      document.getElementById("dropdown").addEventListener("change", e => zoomToHouse(e.target.value.trim()));
-      document.getElementById("clear-dropdown").addEventListener("click", resetView);
-      document.getElementById("reset-btn").addEventListener("click", resetView);
-
-      document.getElementById("googlemaps-btn").addEventListener("click", () => {
-        if (!currentHouse) return;
-        const lat = currentHouse.lat;
-        const lng = currentHouse.lng;
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-
-        if (isIOS) {
-          const useApple = confirm("Open in Apple Maps?\nCancel = Google Maps");
-          if (useApple) {
-            window.location.href = `maps://?q=${lat},${lng}`;
-          } else {
-            window.open(`https://www.google.com/maps?q=${lat},${lng}&z=18&t=k`, '_blank');
-          }
-        } else {
-          window.open(`https://www.google.com/maps?q=${lat},${lng}&z=18&t=k`, '_blank');
-        }
-      });
-
-      document.getElementById("directions-btn").addEventListener("click", () => {
-        if (!currentHouse || !userLocation) return alert("Select a house and allow location access.");
-        const url = `https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${currentHouse.lat},${currentHouse.lng}&travelmode=walking`;
-        window.open(url, '_blank');
-      });
-
-      document.getElementById("share-btn").addEventListener("click", () => {
-        if (!currentHouse) return;
-        const link = `https://maps.google.com/?q=${currentHouse.lat},${currentHouse.lng}`;
-        const text = `Location of ${currentHouse.name}: ${link}`;
-        if (navigator.share) {
-          navigator.share({ title: currentHouse.name, text, url: link }).catch(console.error);
-        } else {
-          navigator.clipboard.writeText(text)
-            .then(() => alert("Copied to clipboard:\n\n" + text))
-            .catch(() => prompt("Copy this:", text));
-        }
-      });
-
-      loadHouses();
-      requestUserLocation();
+    function normalize(str) {
+      return (str || '').toString().toLowerCase().replace(/\s+/g, ' ').trim();
     }
 
-    function isMapAtDefaultView() {
-      const center = map.getCenter();
-      return Math.abs(center.lat() - defaultCenter.lat) < 0.0001 &&
-             Math.abs(center.lng() - defaultCenter.lng) < 0.0001 &&
-             map.getZoom() === defaultZoom;
-    }
+    let allRows = [];
 
-    function resetView() {
-      if (marker) marker.setMap(null);
-      if (userMarker) userMarker.setMap(null);
-      currentHouse = null;
-      document.getElementById("dropdown").value = '';
-      ["directions-btn", "googlemaps-btn", "share-btn", "reset-btn"].forEach(id =>
-        document.getElementById(id).classList.add("hidden")
-      );
-      map.setCenter(defaultCenter);
-      map.setZoom(defaultZoom);
-    }
-
-    async function loadHouses() {
+    async function loadData() {
+      const container = document.getElementById('directoryContainer');
       try {
-        const res = await fetch(GAS_URL);
-        houseData = await res.json();
-        document.getElementById("loader").classList.add("hidden");
-        const datalist = document.getElementById("houses-list");
-        datalist.innerHTML = '';
-        houseData.forEach(h => {
-          if (h.name && !isNaN(h.lat) && !isNaN(h.lng)) {
-            const option = document.createElement("option");
-            option.value = h.name;
-            datalist.appendChild(option);
-          }
+        const res = await fetch(WEB_APP_URL);
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+
+        const data = await res.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          container.innerHTML = '<p class="no-results">No data found.</p>';
+          return;
+        }
+
+        container.innerHTML = '';
+
+        const grouped = {};
+        data.forEach(item => {
+          const center = String(item['Health Center'] || 'Unknown').trim();
+          if (!grouped[center]) grouped[center] = [];
+          grouped[center].push(item);
         });
-      } catch (e) {
-        alert("Failed to load house data.");
-        console.error(e);
+
+        for (const center in grouped) {
+          const section = document.createElement('section');
+          section.className = 'center-group';
+          section.dataset.center = center.toLowerCase();
+
+          const rowsHtml = grouped[center].map(person => {
+            const fullName = String(person['Assigned To'] || '').trim();
+            const role = String(person['Role  or Function'] || '').trim();
+            const dept = String(person['Department'] || '').trim();
+            const phoneRaw = person['Contact Number'] || '';
+            const phone = String(phoneRaw).trim();
+            const searchText = normalize(`${center} ${fullName} ${role} ${dept} ${phone}`);
+
+            return `
+              <tr class="data-row" data-search="${searchText}">
+                <td class="px-4 py-2"><a href="tel:${phone}" class="text-emerald-600">📞 ${phone}</a></td>
+                <td class="px-4 py-2">${dept}</td>
+                <td class="px-4 py-2">${fullName}</td>
+                <td class="px-4 py-2">${role}</td>
+              </tr>`;
+          }).join('');
+
+          section.innerHTML = `
+            <h2>${center}</h2>
+            <div class="overflow-x-auto bg-white rounded shadow mb-6">
+              <table class="min-w-full border-collapse sortable-table">
+                <thead class="bg-emerald-600 text-white">
+                  <tr>
+                    <th class="px-4 py-2" data-col="0">Phone <span class="sort-arrow"></span></th>
+                    <th class="px-4 py-2" data-col="1">Department <span class="sort-arrow"></span></th>
+                    <th class="px-4 py-2" data-col="2">Assignee <span class="sort-arrow"></span></th>
+                    <th class="px-4 py-2" data-col="3">Role <span class="sort-arrow"></span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rowsHtml}
+                </tbody>
+              </table>
+            </div>
+          `;
+
+          container.appendChild(section);
+        }
+
+        allRows = Array.from(document.querySelectorAll('.data-row'));
+        enableSorting();
+
+      } catch (error) {
+        container.innerHTML = `<p class="no-results">Failed to load data: ${error.message}</p>`;
+        console.error(error);
       }
     }
 
-    function zoomToHouse(name) {
-      if (marker) marker.setMap(null);
-      const house = houseData.find(h => h.name?.toLowerCase() === name.toLowerCase());
-      if (!house || isNaN(house.lat) || isNaN(house.lng)) return alert("Invalid or unknown house.");
-      marker = new google.maps.Marker({ position: { lat: Number(house.lat), lng: Number(house.lng) }, map, title: house.name });
-      map.setCenter(marker.getPosition());
-      map.setZoom(18);
-      currentHouse = house;
-      ["directions-btn", "googlemaps-btn", "share-btn"].forEach(id =>
-        document.getElementById(id).classList.remove("hidden")
-      );
+    function filterData() {
+      const term = normalize(document.getElementById('searchInput').value);
+      if (!term) {
+        allRows.forEach(row => (row.style.display = ''));
+        document.querySelectorAll('section.center-group').forEach(s => (s.style.display = ''));
+        const msg = document.querySelector('.no-results-message');
+        if (msg) msg.remove();
+        return;
+      }
+
+      let anyVisible = false;
+
+      allRows.forEach(row => {
+        const match = row.dataset.search.includes(term);
+        row.style.display = match ? '' : 'none';
+        if (match) anyVisible = true;
+      });
+
+      document.querySelectorAll('section.center-group').forEach(section => {
+        const visibleRows = section.querySelectorAll('tbody tr:not([style*="display: none"])');
+        section.style.display = visibleRows.length ? '' : 'none';
+      });
+
+      const container = document.getElementById('directoryContainer');
+      if (!anyVisible && !document.querySelector('.no-results-message')) {
+        const msg = document.createElement('p');
+        msg.className = 'no-results no-results-message';
+        msg.textContent = 'No matching contacts found.';
+        container.appendChild(msg);
+      } else if (anyVisible) {
+        const msg = document.querySelector('.no-results-message');
+        if (msg) msg.remove();
+      }
     }
 
-    function requestUserLocation() {
-      if (!navigator.geolocation) return alert("Geolocation not supported.");
-      navigator.geolocation.getCurrentPosition(
-        pos => {
-          userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          const inside = userLocation.lat >= funadhooBounds.south && userLocation.lat <= funadhooBounds.north &&
-                         userLocation.lng >= funadhooBounds.west && userLocation.lng <= funadhooBounds.east;
-          if (inside) {
-            userMarker = new google.maps.Marker({
-              position: userLocation,
-              map,
-              title: "You are here",
-              icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+    function enableSorting() {
+      const tables = document.querySelectorAll('table.sortable-table');
+      tables.forEach(table => {
+        const headers = table.querySelectorAll('thead th');
+        headers.forEach(th => {
+          th.addEventListener('click', () => {
+            const colIndex = parseInt(th.getAttribute('data-col'));
+            const tbody = table.querySelector('tbody');
+            const rowsArray = Array.from(tbody.querySelectorAll('tr'));
+
+            let currentSort = th.getAttribute('data-sort') || 'none';
+            headers.forEach(h => {
+              if (h !== th) {
+                h.setAttribute('data-sort', 'none');
+                h.querySelector('.sort-arrow').textContent = '';
+              }
             });
-          } else {
-            alert("Your location appears outside Funadhoo.");
-          }
-        },
-        err => console.warn("Location error:", err),
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
+
+            let newSort = (currentSort === 'none' || currentSort === 'desc') ? 'asc' : 'desc';
+            th.setAttribute('data-sort', newSort);
+            th.querySelector('.sort-arrow').textContent = newSort === 'asc' ? '▲' : '▼';
+
+            rowsArray.sort((a, b) => {
+              let aText = a.children[colIndex].textContent.trim().toLowerCase();
+              let bText = b.children[colIndex].textContent.trim().toLowerCase();
+              if (colIndex === 0) {
+                aText = aText.replace(/\D/g, '') || '0';
+                bText = bText.replace(/\D/g, '') || '0';
+                return newSort === 'asc' ? aText.localeCompare(bText, undefined, {numeric:true}) : bText.localeCompare(aText, undefined, {numeric:true});
+              }
+              if (aText < bText) return newSort === 'asc' ? -1 : 1;
+              if (aText > bText) return newSort === 'asc' ? 1 : -1;
+              return 0;
+            });
+
+            rowsArray.forEach(row => tbody.appendChild(row));
+          });
+        });
+      });
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('searchInput').addEventListener('input', filterData);
+    });
+
+    window.onload = loadData;
   </script>
 
-  <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAOVYRIgupAurZup5y1PRh8Ismb1A3lLao&callback=initMap">
-  </script>
   <script src="https://ahmedsharyph.github.io/sh-health-directory/install.js" defer></script>
 </body>
 </html>
